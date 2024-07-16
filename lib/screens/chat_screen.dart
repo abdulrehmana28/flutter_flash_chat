@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_flash_chat/components/MessageStream.dart';
 import 'package:flutter_flash_chat/constants.dart';
+
+final _fireStore = FirebaseFirestore.instance;
 
 class ChatScreen extends StatefulWidget {
   static const id = 'ChatScreen';
@@ -12,7 +15,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final _auth = FirebaseAuth.instance;
-  final _fireStore = FirebaseFirestore.instance;
+  final messageTextController = TextEditingController();
   late String messageText;
   late User loggedInUser;
 
@@ -64,32 +67,7 @@ class _ChatScreenState extends State<ChatScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            StreamBuilder<QuerySnapshot>(
-              stream: _fireStore.collection('messages').snapshots(),
-              builder: (context, snapshot) {
-                List<Text> messageWidgets = [];
-                if (!snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      backgroundColor: Colors.blue,
-                    ),
-                  );
-                }
-                final messages = snapshot.data!.docs;
-
-                for (var message in messages) {
-                  final messageText = message.get('text');
-                  final messageSender = message.get('sender');
-                  final messageWidget =
-                      Text('$messageSender said $messageText');
-                  messageWidgets.add(messageWidget);
-                }
-
-                return Column(
-                  children: messageWidgets,
-                );
-              },
-            ),
+            MessageStream(),
             Container(
               decoration: kMessageContainerDecoration,
               child: Row(
@@ -97,6 +75,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: <Widget>[
                   Expanded(
                     child: TextField(
+                      controller: messageTextController,
                       // message field
                       onChanged: (value) {
                         messageText = value;
@@ -107,6 +86,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ElevatedButton(
                     // send button
                     onPressed: () {
+                      messageTextController.clear();
                       _fireStore.collection('messages').add({
                         'text': messageText,
                         'sender': loggedInUser.email,
