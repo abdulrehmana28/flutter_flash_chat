@@ -5,6 +5,7 @@ import 'package:flutter_flash_chat/components/MessageStream.dart';
 import 'package:flutter_flash_chat/constants.dart';
 
 final _fireStore = FirebaseFirestore.instance;
+late User? loggedInUser;
 
 class ChatScreen extends StatefulWidget {
   static const id = 'ChatScreen';
@@ -17,25 +18,18 @@ class _ChatScreenState extends State<ChatScreen> {
   final _auth = FirebaseAuth.instance;
   final messageTextController = TextEditingController();
   late String messageText;
-  late User loggedInUser;
 
   void getCurrentUser() async {
     try {
       final user = await _auth.currentUser;
       if (user != null) {
-        loggedInUser = user;
-        debugPrint(loggedInUser.email);
+        setState(() {
+          loggedInUser = user;
+        });
+        debugPrint(loggedInUser!.email);
       }
     } catch (e) {
       debugPrint(e.toString());
-    }
-  }
-
-  void messageStream() async {
-    await for (var snapshot in _fireStore.collection('messages').snapshots()) {
-      for (var message in snapshot.docs) {
-        print(message.data());
-      }
     }
   }
 
@@ -54,9 +48,8 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
               icon: Icon(Icons.close),
               onPressed: () {
-                // _auth.signOut();
-                // Navigator.pop(context);
-                messageStream();
+                _auth.signOut();
+                Navigator.pop(context);
               }),
         ],
         title: Text('⚡️Chat'),
@@ -84,13 +77,20 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   ElevatedButton(
-                    // send button
                     onPressed: () {
-                      messageTextController.clear();
-                      _fireStore.collection('messages').add({
-                        'text': messageText,
-                        'sender': loggedInUser.email,
-                      });
+                      if (loggedInUser != null) {
+                        messageTextController.clear();
+                        _fireStore.collection('messages').add({
+                          'text': messageText,
+                          'sender': loggedInUser!.email,
+                        });
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('User not logged in.'),
+                          ),
+                        );
+                      }
                     },
                     child: Text(
                       'Send',

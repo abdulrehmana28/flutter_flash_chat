@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_flash_chat/components/MessageBubble.dart';
+import 'package:flutter_flash_chat/screens/chat_screen.dart';
 
 class MessageStream extends StatelessWidget {
   MessageStream({super.key});
@@ -20,19 +21,24 @@ class MessageStream extends StatelessWidget {
             ),
           );
         }
-        final messages = snapshot.data!.docs;
+        final messages = snapshot.data!.docs.reversed;
 
         for (var message in messages) {
           final messageText = message.get('text');
           final messageSender = message.get('sender');
-          var messageBubble =
-              MessageBubble(text: messageText, sender: messageSender);
+          final currentUser = loggedInUser!.email;
+          var messageBubble = MessageBubble(
+            text: messageText,
+            sender: messageSender,
+            isMe: currentUser == messageSender,
+          );
 
           messageBubbles.add(messageBubble);
         }
 
         return Expanded(
           child: ListView(
+            reverse: true,
             children: messageBubbles,
           ),
         );
